@@ -1,6 +1,5 @@
 import time
 from threading import Thread
-from control import Control
 
 import RPi.GPIO as GPIO
 
