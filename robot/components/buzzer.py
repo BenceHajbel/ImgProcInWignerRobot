@@ -1,7 +1,6 @@
 import time
 from threading import Thread
 import json
-from control import Control
 
 import RPi.GPIO as GPIO
 
@@ -25,19 +24,18 @@ class Buzzer():
 
     def play(self, song):
         self.current_song = self.songs.get(song)
-        print(self.current_song)
         self.current_index = 0
     
     def silence(self):
         self.current_song = None
         self.current_index = None
 
-    def start(self, Control, thread_sleep=0.1):    
+    def start(self, thread_sleep=0.1):    
         self.running = True
-        self.thread = Thread(target=self.control_thread, args=(Control, thread_sleep))
+        self.thread = Thread(target=self.control_thread, args=(thread_sleep,))
         self.thread.start()
 
-    def control_thread(self, Control, thread_sleep):
+    def control_thread(self, thread_sleep):
         while self.running:
             if self.current_song is not None and self.current_index is not None:
                 note = self.current_song[self.current_index]
