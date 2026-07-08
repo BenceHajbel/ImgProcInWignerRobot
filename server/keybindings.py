@@ -20,15 +20,19 @@ def handle_key_press(event, root, Control, settings):
     # Song control
     if event.keysym.lower() == 'v' and Control.pressed_b:
         Control.buzzer = "violent"
+        Control.pressed_b = False
         return
     if event.keysym.lower() == 'n' and Control.pressed_b:
         Control.buzzer = "nino"
+        Control.pressed_b = False
         return
     if  event.keysym.lower() == 'y' and Control.pressed_b:
         Control.buzzer = "supermario"
+        Control.pressed_b = False
         return
     if event.keysym.lower() == 'm' and Control.pressed_b:
         Control.buzzer = "masiksong"
+        Control.pressed_b = False
         return
 
     Control.pressed_l = False
@@ -86,11 +90,11 @@ def accelerateCar(Control, sgn, settings):
             Control.speed = [0,0]
             return
         elif sgn > 0:
-            Control.speed[0] = max(Control.speed[0] + settings["ACCELERATION"], settings["MAX_SPEED"])
-            Control.speed[1] = max(Control.speed[1] + settings["ACCELERATION"], settings["MAX_SPEED"])
+            Control.speed[0] = min(Control.speed[0] + settings["ACCELERATION"], settings["MAX_SPEED"])
+            Control.speed[1] = min(Control.speed[1] + settings["ACCELERATION"], settings["MAX_SPEED"])
         elif sgn < 0:
-            Control.speed[0] = min(Control.speed[0] - settings["ACCELERATION"], settings["MIN_SPEED"])
-            Control.speed[1] = min(Control.speed[1] - settings["ACCELERATION"], settings["MIN_SPEED"])
+            Control.speed[0] = max(Control.speed[0] - settings["ACCELERATION"], settings["MIN_SPEED"])
+            Control.speed[1] = max(Control.speed[1] - settings["ACCELERATION"], settings["MIN_SPEED"])
 
 def turnCar(Control, sgn, settings):
     if sgn == 1:

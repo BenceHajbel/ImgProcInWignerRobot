@@ -1,6 +1,5 @@
 import json
 import socket
-from threading import Thread
 from videoClient import VideoClient
 import sys
 
@@ -54,6 +53,7 @@ while not Control.shutdown:
     if data:
         try:
             params = json.loads(data)
+            print(params)
             Control.shutdown = params["shutdown"]
             Control.speed = params["speed"]
             Control.angles = params["angles"]
@@ -82,5 +82,6 @@ video_client.stop()
 print("Stopping hardware components")
 del motor
 del servo
-del us_sensor
 del buzzer
+print("Stopping US sensor")
+del us_sensor
