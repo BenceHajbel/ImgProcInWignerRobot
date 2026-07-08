@@ -83,5 +83,5 @@ print("Stopping hardware components")
 del motor
 del servo
 del buzzer
-print("Stopping US sensor")
 del us_sensor
+exit(0)

@@ -17,7 +17,7 @@ class USSensor:
         self.thread = None
 
     def start(self, Control, thread_sleep=0.1):
-        self.thread = Thread(target = self.control_thread, args = (Control, thread_sleep))
+        self.thread = Thread(target = self.control_thread, args = (Control, thread_sleep), daemon=True)
         self.thread.start()
 
     def control_thread(self, Control, thread_sleep=0.1):
@@ -33,18 +33,15 @@ class USSensor:
         GPIO.output(self.US_TRIGGER, GPIO.LOW)
         t0 = time.time()
         while not GPIO.input(self.US_ECHO):
-            pass
             if time.time() - t0 > 1:
                 return -1
         t1 = time.monotonic_ns()
         while GPIO.input(self.US_ECHO):
-            pass
+            if time.time() - t0 > 10:
+                return -1
         t2 = time.monotonic_ns()
         return ((t2 - t1) * 340 / 2 ) / 1000000000
     
     def __del__(self):
         self.running = False
-        try:
-            self.thread.join()
-        except:
-            pass
+        self.thread.join(timeout=1)
