@@ -31,13 +31,16 @@ class USSensor:
         GPIO.output(self.US_TRIGGER, GPIO.HIGH)
         time.sleep(0.00001)  #10us
         GPIO.output(self.US_TRIGGER, GPIO.LOW)
+        t0 = time.time()
         while not GPIO.input(self.US_ECHO):
             pass
-        t1 = time.monotonic_ms()
+            if time.time() - t0 > 1:
+                return -1
+        t1 = time.monotonic_ns()
         while GPIO.input(self.US_ECHO):
             pass
-        t2 = time.monotonic_ms()
-        return ((t2 - t1) * 340 / 20)
+        t2 = time.monotonic_ns()
+        return ((t2 - t1) * 340 / 2 ) / 1000000000
     
     def __del__(self):
         self.running = False
