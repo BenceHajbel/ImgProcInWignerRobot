@@ -1,10 +1,21 @@
 import json
 import tkinter as tk
 from videoServer import VideoServer
+from controlServer import ControlServer
+
+import sys
+sys.path.append('./server')
+
+from control import Control
+
+def refresh_display():
+    video_server.refresh_gui()
+    root.after(10, refresh_display)
+
+
 
 with open('settings.json') as f:
     settings = json.load(f)
-
 
 
 root = tk.Tk()
@@ -17,7 +28,7 @@ video_frame.pack(side="left")
 image_label = tk.Label(video_frame, text="Waiting for connection...", font=("Arial", 24))
 image_label.pack(fill="both", expand=True)
 
-# Initialize video server
+print("Starting video server")
 video_server = VideoServer(
     image_label,
     host=settings["LISTEN_IP"],
@@ -27,15 +38,12 @@ video_server = VideoServer(
     channels=settings["IMAGE_CHANNELS"]
 )
 
-def refresh_display():
-    video_server.refresh_gui()
-    root.after(10, refresh_display)
-
-def on_closing():
-    video_server.close_window()
-    root.destroy()
-
-root.protocol("WM_DELETE_WINDOW", on_closing)
 refresh_display()
 
+print("Starting control server")
+controlC = ControlServer(settings["LISTEN_IP"], settings["CONTROL_PORT"])
+controlC.start(Control, settings["THREAD_SLEEP"])
+
+
+print("Starting mainloop")
 root.mainloop()
