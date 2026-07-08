@@ -9,5 +9,11 @@
     "FPS" : 30,
 
     "THREAD_SLEEP" : 0.2,
-    "TIMEOUT_TIME" : 1.0
+    "TIMEOUT_TIME" : 1.0,
+
+    "MAX_SPEED" : 100,
+    "MIN_SPEED" : -25,
+    "ACCELERATION" : 5,
+    "DEFAULT_ANGLES" : [90, 90, 90],
+    "ANGLE_STEP" : 2
 }

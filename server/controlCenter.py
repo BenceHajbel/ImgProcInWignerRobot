@@ -7,12 +7,16 @@ import sys
 sys.path.append('./server')
 
 from control import Control
+from keybindings import handle_keypress
 
 def refresh_display():
     video_server.refresh_gui()
-    root.after(10, refresh_display)
-
-
+    if not Control.shutdown:
+        root.after(10, refresh_display)
+    else:
+        video_server.close_window()
+        root.destroy()
+        exit(0)
 
 with open('settings.json') as f:
     settings = json.load(f)
@@ -44,6 +48,11 @@ print("Starting control server")
 controlC = ControlServer(settings["LISTEN_IP"], settings["CONTROL_PORT"])
 controlC.start(Control, settings["THREAD_SLEEP"])
 
+print("Setup key bindings")
+pressed_l = False
+pressed_b = False
+
+root.bind("<KeyPress>", lambda event: handle_keypress(event, root, Control, settings))
 
 print("Starting mainloop")
 root.mainloop()
