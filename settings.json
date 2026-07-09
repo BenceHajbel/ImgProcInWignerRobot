@@ -1,8 +1,8 @@
 {
     "HOST_IP" : "192.168.137.43",
     "LISTEN_IP" : "0.0.0.0",
-    "VIDEO_PORT" : 5001,
-    "CONTROL_PORT" : 5002,
+    "VIDEO_PORT" : 8001,
+    "CONTROL_PORT" : 8002,
     "IMAGE_WIDTH" : 640,
     "IMAGE_HEIGHT" : 480,
     "IMAGE_CHANNELS" : 3,

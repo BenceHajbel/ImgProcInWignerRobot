@@ -2,6 +2,7 @@ import shutil
 import subprocess
 import threading
 import json
+import time
 
 import numpy as np
 from PIL import Image, ImageTk
@@ -22,11 +23,12 @@ class VideoServer:
         self.channels = channels
         self.frame_size = width * height * channels
 
-        self.latest = {"frame": None, "count": 0, "shown": 0, "error": None}
+        self.latest = {"raw": None, "frame": None, "count": 0, "shown": 0, "error": None}
         self.stop_event = threading.Event()
         self.decoder = self.start_decoder()
 
         threading.Thread(target=self.receiver_loop, daemon=True).start()
+        threading.Thread(target=self.processing_loop, daemon=True).start()
 
     @staticmethod
     def recv_exact(pipe, size):
@@ -104,8 +106,7 @@ class VideoServer:
             while not self.stop_event.is_set():
                 payload = self.recv_exact(stdout, self.frame_size)
                 frame = np.frombuffer(payload, dtype=np.uint8).reshape((self.height, self.width, 3)).copy()
-                self.latest["frame"] = preprocess_display(frame)
-                self.latest["count"] += 1
+                self.latest["raw"] = frame
         except (ConnectionError, OSError):
             pass
         finally:
@@ -115,6 +116,17 @@ class VideoServer:
                 self.decoder.terminate()
             except OSError:
                 pass
+
+    def processing_loop(self):
+        while not self.stop_event.is_set():
+            frame = self.latest["raw"]
+            if frame is None:
+                time.sleep(0.001)
+                continue
+            self.latest["raw"] = None
+            processed = preprocess_display(frame)
+            self.latest["frame"] = processed
+            self.latest["count"] += 1
 
     def refresh_gui(self):
         if self.stop_event.is_set():

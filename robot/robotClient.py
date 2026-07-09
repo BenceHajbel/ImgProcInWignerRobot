@@ -18,6 +18,7 @@ with open('settings.json') as f:
     settings = json.load(f)
 
 print("Starting video client")
+print(f"Port: {settings['VIDEO_PORT']}")
 video_client = VideoClient(
     target_host=settings["HOST_IP"],
     port=settings["VIDEO_PORT"],
