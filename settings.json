@@ -1,12 +1,12 @@
 {
-    "HOST_IP" : "192.168.137.43",
+    "HOST_IP" : "192.168.137.162",
     "LISTEN_IP" : "0.0.0.0",
     "VIDEO_PORT" : 8001,
     "CONTROL_PORT" : 8002,
     "IMAGE_WIDTH" : 640,
     "IMAGE_HEIGHT" : 480,
     "IMAGE_CHANNELS" : 3,
-    "FPS" : 30,
+    "FPS" : 60,
 
     "THREAD_SLEEP" : 0.2,
     "TIMEOUT_TIME" : 1.0,

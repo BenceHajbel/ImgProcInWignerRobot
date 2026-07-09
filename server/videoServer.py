@@ -5,6 +5,7 @@ import json
 import time
 
 import torch
+import torchvision
 import image_processing
 
 import numpy as np
@@ -14,8 +15,8 @@ import tkinter as tk
 class VideoServer:
     def __init__(self, image_label, host, port, width, height, channels):
         
-        self.edge_detector = image_processing.EdgeDetector()
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu')
+        self.edge_detector = image_processing.EdgeDetector(image_processing.ElongatedMaskKernel(device=self.device))
         self.image_label = image_label
         self.host = host
         self.port = port
@@ -24,23 +25,25 @@ class VideoServer:
         self.channels = channels
         self.frame_size = width * height * channels
 
-        self.latest = {"raw": None, "frame": None, "count": 0, "shown": 0, "error": None}
+        self.latest = {"raw": None, "frame": None, "count": 0, "shown": 0, "error": None, "fps": 0.0, "last_fps_time": time.perf_counter(), "last_fps_count": 0,}
         self.stop_event = threading.Event()
         self.decoder = self.start_decoder()
 
+        print(self.device)
         threading.Thread(target=self.receiver_loop, daemon=True).start()
+        threading.Thread(target=self.processing_loop, daemon=True).start()
 
     def preprocess_display(self, frame):
-        image = torch.from_numpy(frame).permute(2, 0, 1).to(self.device)
+        image = torchvision.transforms.ToTensor()(frame)[:3].to(device=self.device)
         with torch.no_grad():
-            edges = self.edge_detector.detect(image).to(self.device)
+            edges = self.edge_detector.detect(image)#.to(self.device)
 
         edges_array = edges.squeeze().detach().cpu().numpy()
         edges_array = np.abs(edges_array)
         if edges_array.max() <= 1.0:
             edges_array = edges_array * 255.0
         edges_array = np.clip(edges_array, 0, 255).astype(np.uint8)
-        
+        # return frame
         return edges_array
 
 
@@ -119,8 +122,8 @@ class VideoServer:
         try:
             while not self.stop_event.is_set():
                 payload = self.recv_exact(stdout, self.frame_size)
-                frame = np.frombuffer(payload, dtype=np.uint8).reshape((self.height, self.width, 3)).copy()
-                self.latest["raw"] = self.preprocess_display(frame)
+                frame = np.frombuffer(payload, dtype=np.uint8).reshape((self.height, self.width, 3))
+                self.latest["raw"] = frame
         except (ConnectionError, OSError):
             pass
         finally:
@@ -157,3 +160,14 @@ class VideoServer:
             photo = ImageTk.PhotoImage(image=Image.fromarray(self.latest["frame"]))
             self.image_label.configure(image=photo)
             self.image_label.image = photo
+
+        # For displaying curent FPS
+        now = time.perf_counter()
+        elapsed = now - self.latest["last_fps_time"]
+
+        if elapsed >= 1.0:
+            frames = self.latest["shown"] - self.latest["last_fps_count"]
+            self.latest["fps"] = frames / elapsed
+            self.latest["last_fps_time"] = now
+            self.latest["last_fps_count"] = self.latest["shown"]
+            print(f"{self.latest['fps']:.1f} FPS")
