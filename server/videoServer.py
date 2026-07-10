@@ -13,7 +13,7 @@ from PIL import Image, ImageTk
 import tkinter as tk
 
 class VideoServer:
-    def __init__(self, image_label, host, port, width, height, channels):
+    def __init__(self, image_label, host, port, width, height, channels, Control):
         
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu')
         self.edge_detector = image_processing.EdgeDetector(image_processing.ElongatedMaskKernel(device=self.device))
@@ -23,6 +23,7 @@ class VideoServer:
         self.width = width
         self.height = height
         self.channels = channels
+        self.Control = Control
         self.frame_size = width * height * channels
 
         self.latest = {"raw": None, "frame": None, "count": 0, "shown": 0, "error": None, "fps": 0.0, "last_fps_time": time.perf_counter(), "last_fps_count": 0,}
@@ -141,8 +142,11 @@ class VideoServer:
                 time.sleep(0.001)
                 continue
             self.latest["raw"] = None
-            processed = self.preprocess_display(frame)
-            self.latest["frame"] = processed
+            if self.Control.preprocess:
+                processed = self.preprocess_display(frame)
+                self.latest["frame"] = processed
+            else:
+                self.latest["frame"] = frame
             self.latest["count"] += 1
 
     def refresh_gui(self):

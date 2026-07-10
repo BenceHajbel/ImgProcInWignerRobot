@@ -40,7 +40,8 @@ video_server = VideoServer(
     port=settings["VIDEO_PORT"],
     width=settings["IMAGE_WIDTH"],
     height=settings["IMAGE_HEIGHT"],
-    channels=settings["IMAGE_CHANNELS"]
+    channels=settings["IMAGE_CHANNELS"],
+    Control = Control
 )
 
 refresh_display()

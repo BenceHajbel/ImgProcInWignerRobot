@@ -84,6 +84,9 @@ def handle_key_press(event, root, Control, settings):
     if event.keysym.lower() == 'm':
         Control.us_measuring = not Control.us_measuring
 
+    if event.keysym.lower() == 'e':
+        Control.preprocess = not Control.preprocess
+
 
 
 def accelerateCar(Control, sgn, settings):
