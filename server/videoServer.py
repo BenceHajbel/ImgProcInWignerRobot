@@ -7,6 +7,7 @@ import time
 import torch
 import torchvision
 import image_processing
+import cv2
 
 import numpy as np
 from PIL import Image, ImageTk
@@ -142,9 +143,12 @@ class VideoServer:
                 time.sleep(0.001)
                 continue
             self.latest["raw"] = None
-            if self.Control.preprocess:
+            if self.Control.preprocess == 1:
                 processed = self.preprocess_display(frame)
                 self.latest["frame"] = processed
+            elif self.Control.preprocess == 2:
+                canny_processed = cv2.Canny(frame, 100, 200)
+                self.latest["frame"] = canny_processed
             else:
                 self.latest["frame"] = frame
             self.latest["count"] += 1

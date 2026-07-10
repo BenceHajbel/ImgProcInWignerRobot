@@ -85,7 +85,7 @@ def handle_key_press(event, root, Control, settings):
         Control.us_measuring = not Control.us_measuring
 
     if event.keysym.lower() == 'e':
-        Control.preprocess = not Control.preprocess
+        Control.preprocess = (Control.preprocess + 1) % 3
 
 
 

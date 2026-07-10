@@ -8,4 +8,4 @@ class Control:
     buzzer = ""
     pressed_l = False
     pressed_b = False
-    preprocess = False
+    preprocess = 0
