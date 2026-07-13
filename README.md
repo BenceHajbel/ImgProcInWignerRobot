@@ -1,156 +1,102 @@
-# WignerRobot
+# ImgProcInWignerRobot
 
-A client/server framework for remotely driving a Raspberry Pi–based robot car from a PC, with a live low‑latency video feed, keyboard-based motion and camera-gimbal control, an ultrasonic distance sensor, a buzzer for playing songs, and an 8x16 dot-matrix display.
+A fork of [**WignerRobot**](https://github.com/<your-org>/WignerRobot) used to test the [`image-processing`](https://github.com/dcintlab/image-processing) edge-detection package on the live video feed of the robot.
 
-The PC runs a Tkinter **control center** that renders the robot's video stream and sends control commands over the network. The Raspberry Pi runs a **robot client** that drives the motors/servos/sensors and streams its camera feed back, using `ffmpeg` for hardware-accelerated H.264 encoding/decoding over UDP.
+WignerRobot is a client/server framework for remotely driving a Raspberry Pi–based robot car from a PC: the PC runs a Tkinter **control center** that renders the robot's video stream and sends control commands, while the Raspberry Pi runs a **robot client** that drives the motors/servos/sensors and streams its camera feed back over UDP via `ffmpeg`.
 
-## Features
+This fork keeps the robot side untouched and modifies only the **server's video pipeline**, so that each incoming video frame can optionally be run through:
 
-- 🎮 **Keyboard teleoperation** — drive, steer, and brake the robot with arrow keys
-- 📷 **Live video streaming** — low-latency H.264 stream over UDP, decoded and rendered in a desktop GUI
-- 🎯 **Camera & sensor gimbal control** — pan/tilt the camera and ultrasonic sensor with dedicated keys
-- 📡 **Ultrasonic distance sensing** — toggleable obstacle-distance measurement
-- 🔊 **Buzzer songs** — play built-in tunes (or add your own) defined in `songs.json`
-- 💡 **Dot-matrix display** — show icons/expressions on an 8x16 LED matrix, defined in `dot_matrices.json`
-- 🔌 **Automatic encoder fallback** — tries hardware encoders (NVENC, QSV, AMF) before falling back to software `libx264`
-- 🧵 **Threaded, non-blocking control loop** — motors, servos, sensor, and buzzer each run on their own background thread
+- the GPU-accelerated `EdgeDetector` (elongated-mask kernel) from the `image-processing` package, or
+- OpenCV's classic Canny edge detector,
 
-## Architecture
+as a live, switchable overlay on top of the normal camera view — a quick way to sanity-check the edge-detection package on real, noisy, moving camera footage instead of static test images.
 
-```
-┌─────────────────────────────┐        TCP (control)        ┌─────────────────────────────────┐
-│         PC / Server         │ ───────────────────────────▶│        Raspberry Pi             │
-│                             │        JSON state           │          (Robot)                │
-│  controlCenter.py (Tk GUI)  │ ◀───────────────────────────│       robotClient.py            │
-│   ├─ ControlServer          │        UDP (video, H.264)   │        ├─ ControlClient         │
-│   ├─ VideoServer (ffmpeg)   │ ◀───────────────────────────│        ├─ VideoClient (ffmpeg)  │
-│   └─ keybindings.py         │                             │        ├─ Motor                 │
-└─────────────────────────────┘                             │        ├─ Servo                 │
-                                                            │        ├─ USSensor              │
-                                                            │        ├─ Buzzer                │
-                                                            │        └─ DotMatrix             │
-                                                            └─────────────────────────────────┘
-```
+## What's different from WignerRobot
 
-The control server pushes the full desired robot state (speed, servo angles, sensor toggle, buzzer song, shutdown flag) to the robot on a fixed interval; the robot client applies it to the hardware and reports back a distance measurement. Video flows one-way from the robot's camera to the PC's display.
+| Area | Change |
+|---|---|
+| `server/videoServer.py` | `VideoServer` now takes the shared `Control` object, runs each decoded frame through a selectable preprocessing step, and tracks/prints a live FPS counter |
+| `server/keybindings.py` | New key (`E`) cycles through the display modes |
+| `server/control.py` | New `preprocess` field (`0`/`1`/`2`) on the shared control state |
+| `server/controlCenter.py` | Passes `Control` into `VideoServer` so key presses can change the display mode live |
+| `settings.json` | Example `HOST_IP`/`FPS` values used for this test setup |
 
-## Repository Structure
+The robot-side code (`robot/`), `songs.json`, and `dot_matrices.json` are unchanged from the upstream WignerRobot repository — see its README for driving controls, hardware wiring, and general setup.
 
-```
-WignerRobot/
-├── environment.yml          # Conda environment definition
-├── settings.json            # Shared network/robot configuration
-├── songs.json                # Buzzer note sequences (frequency, duration)
-├── dot_matrices.json        # 8x16 dot-matrix bitmap definitions
-├── server/                  # Runs on the PC
-│   ├── controlCenter.py     # Entry point: Tkinter GUI, wires everything together
-│   ├── controlServer.py     # TCP server pushing control state to the robot
-│   ├── videoServer.py       # Receives/decodes the UDP video stream via ffmpeg
-│   ├── keybindings.py       # Keyboard → control-state mapping
-│   └── control.py           # Shared control-state container
-└── robot/                   # Runs on the Raspberry Pi
-    ├── robotClient.py        # Entry point: connects to server, drives hardware
-    ├── controlClient.py      # TCP client receiving control state
-    ├── videoClient.py        # Captures/encodes the camera feed via ffmpeg
-    ├── control.py             # Shared control-state container
-    └── components/
-        ├── motor.py           # 4-wheel differential drive over GPIO/PWM
-        ├── servo.py            # Camera pan/tilt + ultrasonic sensor servo
-        ├── usSensor.py         # HC-SR04-style ultrasonic distance sensor
-        ├── buzzer.py            # PWM buzzer with song playback
-        └── dotMatrix.py         # 8x16 LED dot-matrix driver
-```
+## Display Modes
+
+Press **`E`** in the control-center window to cycle through:
+
+| Mode | Value | Behaviour |
+|---|---|---|
+| Raw | `0` (default) | Shows the camera feed unmodified |
+| `image-processing` EdgeDetector | `1` | Runs the frame through `image_processing.EdgeDetector` using an `ElongatedMaskKernel`, on GPU (CUDA/MPS) if available, otherwise CPU |
+| OpenCV Canny | `2` | Runs `cv2.Canny(frame, 100, 200)` on the frame for a classic-edge-detection comparison |
+
+The current FPS is printed to the console once per second so the cost of each mode can be compared directly.
 
 ## Requirements
 
-**PC (server):**
-- Python 3.12
-- [`ffmpeg`](https://ffmpeg.org/) available on `PATH`
-- `numpy`, `pillow`, `tk` (see `environment.yml`)
+This fork adds the following on top of the base WignerRobot dependencies (**server/PC side only** — the robot side is unaffected):
 
-**Raspberry Pi (robot):**
-- Python 3.12
-- `ffmpeg`
-- `RPi.GPIO`
-- `opencv-python-headless`
-- A camera accessible via OpenCV (`cv2.VideoCapture`)
-- Motors, servos, an ultrasonic sensor, a buzzer, and/or a dot-matrix display wired to the GPIO pins used in `robot/components/`
+- `torch` >= 2.4
+- `torchvision` >= 0.19
+- `opencv-python` (regular, non-headless build, since it's used on the GUI machine)
+- the [`image-processing`](https://github.com/dcintlab/image-processing) package itself
+
+These are **not** yet part of `environment.yml`, so install them manually after creating the base environment.
 
 ## Installation
 
-Both the PC and the Raspberry Pi use the same conda environment definition.
-
 ```bash
-git clone https://github.com/<your-org>/WignerRobot.git
-cd WignerRobot
+git clone https://github.com/<your-org>/ImgProcInWignerRobot.git
+cd ImgProcInWignerRobot
 conda env create -f environment.yml
 conda activate WignerRobot
+
+# Additional dependencies for the edge-detection integration
+pip install torch torchvision opencv-python
+
+# Install the image-processing package (editable install from a local clone,
+# or directly from git)
+git clone https://github.com/dcintlab/image-processing.git ../image-processing
+pip install -e ../image-processing
+# or: pip install git+https://github.com/dcintlab/image-processing.git
 ```
 
-> `RPi.GPIO` is only importable on a Raspberry Pi — the robot-side hardware modules (`motor.py`, `servo.py`, `usSensor.py`, `buzzer.py`, `dotMatrix.py`) will fail to import elsewhere. The server side has no such dependency.
+> A CUDA-capable GPU (or Apple Silicon for MPS) is optional but recommended for mode `1` — `VideoServer` automatically falls back to CPU if neither is available.
 
 ## Configuration
 
-All shared settings live in `settings.json` at the repository root:
+Same `settings.json` as upstream WignerRobot, with two values adjusted for this test setup:
 
-| Key | Description |
-|---|---|
-| `HOST_IP` | IP address of the PC/server (the robot connects to this) |
-| `LISTEN_IP` | Interface the server binds to (`0.0.0.0` for all interfaces) |
-| `VIDEO_PORT` / `CONTROL_PORT` | UDP video / TCP control port numbers |
-| `IMAGE_WIDTH` / `IMAGE_HEIGHT` / `IMAGE_CHANNELS` | Video frame dimensions |
-| `FPS` | Target video frame rate |
-| `THREAD_SLEEP` | Poll interval for control/hardware threads |
-| `TIMEOUT_TIME` | Robot-side socket timeout before treating the connection as lost |
-| `MAX_SPEED` / `MIN_SPEED` / `ACCELERATION` | Motor speed limits and step size per key press |
-| `DEFAULT_ANGLES` | Default servo angles `[us, horizontal, vertical]` |
-| `ANGLE_STEP` | Servo angle change per key press |
+| Key | Value here | Notes |
+|---|---|---|
+| `HOST_IP` | example PC IP on the test network | update to your own PC's IP before running |
+| `FPS` | `60` | raised from the upstream default of `30` to leave more headroom for measuring the overhead of each preprocessing mode |
 
-Update `HOST_IP` to the PC's IP address on your network before running the robot client.
+All other keys (ports, image size, motor/servo limits, etc.) are unchanged — see the upstream WignerRobot README for the full reference table.
 
 ## Usage
 
 **1. Start the control center on the PC:**
 
 ```bash
-cd WignerRobot
+cd ImgProcInWignerRobot
 python server/controlCenter.py
 ```
 
-This opens a window that waits for the robot to connect and will display its video feed once connected.
-
-**2. Start the robot client on the Raspberry Pi:**
+**2. Start the robot client on the Raspberry Pi (unchanged from upstream):**
 
 ```bash
-cd WignerRobot
+cd ImgProcInWignerRobot
 python robot/robotClient.py
 ```
 
-The robot connects to `HOST_IP`, starts streaming video, and begins listening for control commands. Click into the control-center window and use the keyboard to drive.
+**3. Drive as usual**, and press **`E`** at any time to cycle the video feed between raw / `image-processing` edges / OpenCV Canny edges. Watch the console for the live FPS reading in each mode.
 
-## Controls
-
-| Key(s) | Action |
-|---|---|
-| `↑` / `↓` | Accelerate forward / backward |
-| `←` / `→` | Turn left / right |
-| `Space` | Stop and reset servos to default angles |
-| `W` / `S` | Tilt camera vertical servo up / down |
-| `A` / `D` | Pan camera horizontal servo left / right |
-| `O` / `P` | Adjust ultrasonic sensor servo angle |
-| `M` | Toggle ultrasonic distance measuring |
-| `B` then `V` / `N` / `Y` / `M` | Play a buzzer song (violent / nino / supermario / masiksong) |
-| `B` then `B` | Stop the current song |
-| `Esc` / `Q` | Shut down the robot connection |
-
-Buzzer songs are defined as `[frequency, duration]` note pairs in `songs.json` — add new entries there to make them available via key combos in `server/keybindings.py`.
-
-## Customization
-
-- **Add a song:** append a new `"name": [[freq, duration], ...]` entry to `songs.json`, then bind a key to it in `server/keybindings.py`.
-- **Add a dot-matrix icon:** append a new 16-byte array to `dot_matrices.json` and display it with `DotMatrix.show("name")`.
-- **Change video encoders:** `VideoClient` tries encoders in the order given by its `encoders` argument (default: `h264_nvenc`, `h264_qsv`, `h264_amf`, `libx264`), probing each before use and falling back automatically if unavailable.
+For the full set of driving/servo/buzzer keybindings, see the upstream [WignerRobot README](https://github.com/<your-org>/WignerRobot).
 
 ## License
 
-No license file is currently included in this repository. Add a `LICENSE` file to specify the terms under which this project may be used, modified, and distributed.
+No license file is included in this repository. The bundled `image-processing` package it depends on is licensed under **GPL-3.0** — keep this in mind before redistributing this fork.
