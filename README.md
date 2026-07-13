@@ -1,6 +1,6 @@
 # ImgProcInWignerRobot
 
-A fork of [**WignerRobot**](https://github.com/<your-org>/WignerRobot) used to test the [`image-processing`](https://github.com/dcintlab/image-processing) edge-detection package on the live video feed of the robot.
+A fork of [**WignerRobot**](https://github.com/intensivedatacomp/WignerRobot) used to test the [`image-processing`](https://github.com/intensivedatacomp/image-processing) edge-detection package on the live video feed of the robot.
 
 WignerRobot is a client/server framework for remotely driving a Raspberry Pi–based robot car from a PC: the PC runs a Tkinter **control center** that renders the robot's video stream and sends control commands, while the Raspberry Pi runs a **robot client** that drives the motors/servos/sensors and streams its camera feed back over UDP via `ffmpeg`.
 
@@ -42,14 +42,14 @@ This fork adds the following on top of the base WignerRobot dependencies (**serv
 - `torch` >= 2.4
 - `torchvision` >= 0.19
 - `opencv-python` (regular, non-headless build, since it's used on the GUI machine)
-- the [`image-processing`](https://github.com/dcintlab/image-processing) package itself
+- the [`image-processing`](https://github.com/intensivedatacomp/image-processing) package itself
 
 These are **not** yet part of `environment.yml`, so install them manually after creating the base environment.
 
 ## Installation
 
 ```bash
-git clone https://github.com/<your-org>/ImgProcInWignerRobot.git
+git clone https://github.com/BenceHajbel/ImgProcInWignerRobot.git
 cd ImgProcInWignerRobot
 conda env create -f environment.yml
 conda activate WignerRobot
@@ -59,9 +59,9 @@ pip install torch torchvision opencv-python
 
 # Install the image-processing package (editable install from a local clone,
 # or directly from git)
-git clone https://github.com/dcintlab/image-processing.git ../image-processing
+git clone https://github.com/intensivedatacomp/image-processing.git ../image-processing
 pip install -e ../image-processing
-# or: pip install git+https://github.com/dcintlab/image-processing.git
+# or: pip install git+https://github.com/intensivedatacomp/image-processing.git
 ```
 
 > A CUDA-capable GPU (or Apple Silicon for MPS) is optional but recommended for mode `1` — `VideoServer` automatically falls back to CPU if neither is available.
@@ -95,8 +95,4 @@ python robot/robotClient.py
 
 **3. Drive as usual**, and press **`E`** at any time to cycle the video feed between raw / `image-processing` edges / OpenCV Canny edges. Watch the console for the live FPS reading in each mode.
 
-For the full set of driving/servo/buzzer keybindings, see the upstream [WignerRobot README](https://github.com/<your-org>/WignerRobot).
-
-## License
-
-No license file is included in this repository. The bundled `image-processing` package it depends on is licensed under **GPL-3.0** — keep this in mind before redistributing this fork.
+For the full set of driving/servo/buzzer keybindings, see the upstream [WignerRobot README](https://github.com/intensivedatacomp/WignerRobot).
